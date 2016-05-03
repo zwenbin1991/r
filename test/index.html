@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <script src="../lib/demo.js"></script>
+    <script>
+        //添加路由处理器
+        Q.reg('home', function () {
+            console.log('hello world');
+        });
+
+        /*
+        添加一个路由处理器
+        注册url有两种方式
+        1、关键字标明 执行效率更高
+        2、更多需求时，通过正则匹配
+        * */
+
+//        setTimeout(function () {
+//            Q.init({
+//                index: 'home'
+//            });
+//        }, 1000);
+
+//        Q.init({
+//            index: 'home'
+//        });
+    </script>
+</body>
+</html>
