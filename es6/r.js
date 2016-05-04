@@ -6,17 +6,18 @@
 'use strict';
 
 let path = {};
-let pathRegExp = [];
 let splitter = '!';
-var homePage = 'index';
-var root = window;
+let homePage = 'index';
+let root = window;
+let pathExp = /[/*]/g;
+let nativeKeys = Object.keys;
 
 const parseRoute = (action, glob, handle, context) => {
     if (!glob || !handle) return false;
 
     if (typeof glob === 'string' || glob instanceof RegExp) return true;
 
-    for (var i = 0, length = glob.length; i < length; i++) {
+    for (let i = 0, length = glob.length; i < length; i++) {
         this[action].call(this, glob[i], handle, context);
     }
 
@@ -28,25 +29,70 @@ const getHash = () => {
 };
 
 const setHash = (hash) => {
-    var hashExp = new RegExp('(?:#|'+ splitter +')', 'g');
+    let hashExp = new RegExp('(?:#|'+ splitter +')', 'g');
     location.hash =  '#' + splitter + hash.replace(hashExp, '');
 };
 
-const hashChange = () => {
-    if (pathRegExp.length) {
-        for (var i = 0, length = pathRegExp.length; i < length; i++) {
-                
+const hashMatcher = () => {
+    let hash = getHash();
+    let pathKeys = nativeKeys(path), pathObjectList, key, exp;
+
+    if (!hash) return setHash(homePage);
+
+    for (let i = 0, length = pathKeys.length; i < length; i++) {
+        key = pathKeys[i];
+
+        // 如果注册的是正则表达式路径
+        if (exp = path[key].regexp) {
+            if (exp.test(hash)) {
+                pathObjectList = path[key].obj;
+                break;
+            }
+        } else {
+            if (key === hash) {
+                pathObjectList = path[key].obj;
+                break;
+            }
         }
     }
 
+    pathObjectList && pathObjectList.forEach(pathObject =>
+        pathObject.handle.apply(pathObject.context)
+    );
+};
+
+const hashChange = () =>
+    hashMatcher();
+
+/**
+ * path转换成根据path的正则表达式
+ *
+ * @param {String} path 正则表达式路径
+ * example
+ *   xx/* => xx/[^/]*?$
+ *   xx/* /v => xx/[^/]* /v$
+ *   xx/* /v /* => xx/[^/]*?/v/[^/]*?$*
+ * @return {String}
+ */
+const pathToRegExp = (path) => {
+    let exp = path.replace(pathExp, match => {
+        return match === '/' ? '\\/' : '[^\/]*?';
+    }) + '$';
+
+    return new RegExp(exp);
 };
 
 // 绑定一个路由处理器
 export const bind = (glob, handle, context) => {
     if (!parseRoute.call(this, 'bind', glob, handle, context)) return this;
 
-    if (typeof glob === 'string') (path[glob] || (path[glob] = [])).push({ handle: handle, context: context || root });
-    else if (glob instanceof RegExp) pathRegExp.push({ regexp: glob, handle: handle, context: context || root });
+    if (typeof glob === 'string') {
+        path[glob] || (path[glob] = {});
+
+        if (pathExp.test(glob)) path[glob].regexp = pathToRegExp(glob);
+
+        path[glob].obj || (path[glob].obj = []).push({ handle: handle, context: context || root });
+    }
 
     return this;
 };
@@ -58,7 +104,7 @@ export const unbind = (glob, handle) => {
     if (!path[glob]) return this;
 
     if (typeof glob === 'string') {
-        for (var i = 0, result = [], length = (list = path[glob]).length, usedHandle; i < length; i++) {
+        for (let i = 0, result = [], length = (list = path[glob]).length, usedHandle; i < length; i++) {
             (usedHandle = list[i].handle) !== handle && result.push(usedHandle);
         }
 
@@ -75,9 +121,12 @@ export const boot = option => {
     option.homePage && (homePage = option.homePage);
 
     root.onhashchange && (root.onhashchange = hashChange);
+    hashChange();
 };
 
 // 跳转到某一hash
 export const go = hash => {
+    setHash(hash);
 
+    return this;
 };
