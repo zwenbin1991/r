@@ -8,9 +8,22 @@
     <script src="../lib/demo.js"></script>
     <script>
         //添加路由处理器
-        Q.reg('home', function () {
-            console.log('hello world');
+        Q.reg('home', function (md, wjj) {
+            console.log(md + ' : ' + wjj);
         });
+
+        // 绑定hash处理器，设置默认首页和hash分隔符
+        Q.init({
+            index: 'home'
+        });
+
+        //注册和匹配，hash处理器
+        alert(!!window.onhashchange)
+
+        //是否改变了#和hash的分隔符
+        // 是否设置了首页路由
+        // 获取hash = location.hash.substring(key.length + 1); #分隔符后面字符
+        // 根据/分隔出路径数组
 
         /*
         添加一个路由处理器
